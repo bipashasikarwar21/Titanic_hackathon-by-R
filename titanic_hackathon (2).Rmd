@@ -1,0 +1,377 @@
+---
+title: "Titanic Hackathon"
+output: html_notebook
+---
+
+```{r}
+train <- read.csv("C:/Users/chauh/Downloads/titanic/train.csv")
+
+head(train)
+```
+
+
+```{r}
+colSums(is.na(train))
+```
+
+
+
+```{r}
+require(readr)
+
+train <- read_csv("C:/Users/chauh/Downloads/titanic/train.csv")
+
+train
+
+
+```
+
+
+
+```{r}
+test <- read_csv("C:/Users/chauh/Downloads/titanic/test.csv")
+
+test
+```
+
+
+
+```{r}
+require(dplyr)
+
+master <- bind_rows(train, test)
+
+str(master)
+```
+
+
+```{r}
+master <- mutate_if(master, is.character, toupper)
+
+master <- distinct(master)
+
+master
+```
+
+
+```{r}
+colSums(is.na(master))
+```
+
+
+```{r}
+master$Cabin <- NULL
+```
+
+
+
+```{r}
+
+master[is.na(master$Fare), ]
+
+```
+
+
+```{r}
+
+summary(master$Fare[master$Pclass == 3 & master$Embarked == 'S'])
+
+```
+
+
+
+```{r}
+master$Fare[1044] <- 8.05
+```
+
+
+```{r}
+colSums(is.na(master))
+```
+
+
+
+```{r}
+master[is.na(master$Embarked), ]
+```
+
+
+
+```{r}
+require(ggplot2)
+
+ggplot(master, aes(x = Embarked, y = Fare, fill = Embarked)) + 
+  geom_boxplot()
+  
+
+```
+
+
+```{r}
+master$Embarked[is.na(master$Embarked)] <- 'C'
+
+```
+
+
+
+
+
+```{r}
+colSums(is.na(master))
+```
+
+
+
+```{r}
+summary(master$Age)
+
+titanic_age <- ifelse(is.na(master$Age), median(master$Age, na.rm = T), master$Age)
+
+summary(titanic_age)
+```
+
+
+
+```{r}
+par(mfrow = c(1,2))
+
+hist(master$Age, col = 'green')
+
+hist(titanic_age, col = 'skyblue')
+
+```
+
+
+```{r}
+
+master[is.na(master$Age), ]
+
+```
+
+
+```{r}
+View(master)
+```
+
+
+```{r}
+mice_df <- master[, -c(1, 2, 4, 9)]
+
+View(mice_df)
+
+```
+
+
+
+
+```{r}
+require(mice)
+set.seed(100)
+
+mice_imp <- mice(mice_df, method = 'rf')
+```
+
+
+
+```{r}
+colSums(is.na(master))
+
+```
+
+```{r}
+master$Fare[ is.na(master$Fare) ] <- median(master$Fare, na.rm = T)
+
+```
+
+
+
+
+```{r}
+colSums(is.na(master))
+
+```
+
+
+```{r}
+master$Cabin <- NULL
+
+colSums(is.na(master))
+
+```
+
+
+```{r}
+
+table(master$Embarked)
+
+```
+
+
+```{r}
+master$Embarked[ is.na(master$Embarked) ] <- 'S'
+
+colSums(is.na(master))
+
+```
+
+
+```{r}
+n_distinct(master$PassengerId) == nrow(master)
+
+```
+
+
+```{r}
+table(master$Survived)
+
+```
+
+
+```{r}
+table(master$Pclass)
+```
+
+
+```{r}
+master$Name <- NULL
+
+master$Ticket <- NULL
+```
+
+
+
+
+
+```{r}
+require(dummies)
+
+master_1 <- dummy.data.frame(master)
+```
+
+
+
+
+```{r}
+train <- master_1[1:891 , ]
+
+test <- master_1[892:1309 , ]
+
+```
+
+
+
+```{r}
+set.seed(123)
+
+i <- sample(nrow(train), 0.75 * nrow(train))
+
+trn_df <- train[i, ]
+
+val_df <- train[-i,]
+
+```
+
+
+
+```{r}
+
+lgm_1 <- glm(Survived ~ . , data = trn_df, family = 'binomial')
+
+summary(lgm_1)
+
+```
+
+AKAIKE INFORMATION CRITERION
+
+
+```{r}
+lgm_2 <- step(lgm_1)
+
+summary(lgm_2)
+
+```
+
+
+```{r}
+require(car)
+
+sort(vif(lgm_2))
+```
+
+
+```{r}
+
+prob_survived <- predict(lgm_2, newdata = val_df, type = 'response')
+
+summary(prob_survived)
+```
+
+
+```{r}
+
+val_df$pred_survived <- ifelse(prob_survived > 0.5, 1, 0)
+
+View(val_df[, c('Survived', "pred_survived")])
+
+```
+
+
+```{r}
+require(caret)
+
+val_df$Survived <- as.factor(val_df$Survived)
+
+val_df$pred_survived <- as.factor(val_df$pred_survived)
+
+confusionMatrix(val_df$pred_survived , val_df$Survived , positive = '1')
+
+```
+
+
+
+
+```{r}
+
+prob_survived <- predict(lgm_2, newdata = test, type = "response")
+
+test$Survived <- ifelse(prob_survived > 0.5, 1, 0)
+
+View(test)
+
+
+```
+
+```{r}
+submission <- test[ , c('PassengerId', 'Survived')]
+
+write.csv(submission, "sub_log_reg.csv", row.names = F)
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
